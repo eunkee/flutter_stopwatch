@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 void main() {
   runApp(const MyApp());
@@ -27,13 +28,60 @@ class StopWatchPage extends StatefulWidget {
 }
 
 class _StopWatchPageState extends State<StopWatchPage> {
+  late Timer _timer;
+  var _time = 0;
+  var _isRunning = false;
+
+  List<String> _lapTimes = [];
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  void _clickButton() {
+    _isRunning = !_isRunning;
+
+    if (_isRunning) {
+      _start();
+    } else {
+      _pause();
+    }
+  }
+
+  void _start() {
+    _timer = Timer.periodic(const Duration(milliseconds: 10), (timer) {
+      setState(() {
+        _time++;
+      });
+    });
+  }
+
+  void _pause() {
+    _timer.cancel();
+  }
+
+  void _reset() {
+    setState(() {
+      _isRunning = false;
+      _timer.cancel();
+      _lapTimes.clear();
+      _time = 0;
+    });
+  }
+
+  void _recordLapTime(String time) {
+    _lapTimes.insert(0, '${_lapTimes.length + 1}등 $time');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('StopWatch'),
       ),
-      body: _buildBody(),
+      body: _buildBody(_time),
       bottomNavigationBar: BottomAppBar(
         child: Container(
           height: 50.0,
@@ -43,13 +91,16 @@ class _StopWatchPageState extends State<StopWatchPage> {
         onPressed: () => setState(() {
           _clickButton();
         }),
-        child: const Icon(Icons.play_arrow),
+        child: _isRunning ? const Icon(Icons.pause) :const Icon(Icons.play_arrow),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(var _time) {
+    var sec = _time ~/ 100;
+    var hundredth = '${_time % 100}'.padLeft(2, '0');
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.only(top: 30),
@@ -62,16 +113,17 @@ class _StopWatchPageState extends State<StopWatchPage> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text( // 초
-                      '0',
-                      style: TextStyle(fontSize: 50.0),
+                      '$sec',
+                      style: const TextStyle(fontSize: 50.0),
                     ),
+                    Text(hundredth),
                   ],
                 ),
-                Container( // 랩 타임을 표시하는 영역
+                SizedBox( // 랩 타임을 표시하는 영역
                   width: 100,
                   height: 200,
                   child: ListView(
-                    children: [],
+                    children: _lapTimes.map((time) => Text(time)).toList(),
                   ),
                 ),
               ],
@@ -81,7 +133,7 @@ class _StopWatchPageState extends State<StopWatchPage> {
               bottom: 10,
               child: FloatingActionButton(
                 backgroundColor: Colors.deepOrange,
-                onPressed: () {},
+                onPressed: _reset,
                 child: const Icon(Icons.rotate_left),
               )
             ),
@@ -89,7 +141,11 @@ class _StopWatchPageState extends State<StopWatchPage> {
                 right: 10,
                 bottom: 10,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    setState(() {
+                      _recordLapTime('$sec.$hundredth');
+                    });
+                  },
                   child: const Text('랩타임'),
                 )
             )
@@ -97,8 +153,5 @@ class _StopWatchPageState extends State<StopWatchPage> {
         ),
       ),
     );
-  }
-
-  void _clickButton() {
   }
 }
